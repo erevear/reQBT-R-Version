@@ -1,4 +1,5 @@
-  library(shiny)
+
+library(shiny)
   frequencies<-read.csv("Allele_Frequencies.csv",header = FALSE, stringsAsFactors = FALSE)
   drop_out_frequencies<-read.csv("Drop_Out_Rates.csv", header = FALSE, stringsAsFactors = FALSE)
   #drop_in_frequencies<-read.csv("Drop_In_Rates.csv", header = FALSE, stringsAsFactors = FALSE)
@@ -7,7 +8,7 @@
   amounts<-c(NA, NA, 25,50,100,150,250,500, 6.25, 12.5)
   
   
-  
+  #creates a unique mark for every allele combination that can then be used to link the data in different tabes
   check_dup <- function(x,y){
     #print("x from check dup")
     #print(x) 
@@ -17,7 +18,7 @@
     
   }
   
-  
+  #takes in a locus and chosen alleles and returns their frequencies for all races, from file
   getFreq<-function(locus, alleles) {
     y<-frequencies[frequencies$V1 == locus & frequencies$V2 %in% alleles, ]
     #y<-y[y$V2 == alleles,] 
@@ -31,6 +32,7 @@
     return(allele_freq)
   }
   
+  #takes in frequency information for all alleles for each race and returns the freqencies for just the given race, and also calculates and adds w frequency to the list
   get_allele_freq_2<-function(alleles, race) {
     freq<-alleles[, race]
     temp<-as.numeric(alleles[,"V2"])
@@ -46,6 +48,7 @@
     return(freq)
   }
   
+#matches the frequency for the alleles with their mark
   match_mark<-function(combos, alleles) {
     the_names<-names(alleles)
     #print("names")
@@ -58,6 +61,7 @@
     return(combos)
   }
   
+#generates every possible combination of alleles and uses their number to generate the mark
   generate_allele_combos<-function(alleles, the_names) {
     print("alleles from generate combos to check names")
     print(the_names)
@@ -89,6 +93,7 @@
     return(combos)
   }
   
+#generates all possible combinations contributor alleles
   generate_contributor_combos<-function(allele_combos, num_contributors) {
     
     if(num_contributors == 1) {
@@ -102,7 +107,7 @@
     return(all_combos)
   }
   
-  
+  #searches the drop out table for the necessary drop out ranges given the number of contributors and whether the profile is deducible or non deducible
   get_dropout_range<-function(num_contributors, D_ND) {
     Het1_loc<-paste("HET1", num_contributors, D_ND, sep="-")
     Het2_loc<-paste("HET2", num_contributors, D_ND, sep="-")
@@ -124,6 +129,7 @@
     #drop_out_frequencies[drop_out_frequencies$Type == "HET1-4-ND",]
   }
   
+#uses interpolation to determine drop out frequencies that lie between the established amounts. Takes in the table of rates for the locus, and number of contributors; takes in quantity of DNA
   calculate_drop_out<-function(dropout_rate_table, quant, locus) {
     #temp_table1<-dropout_rate_table[dropout_rate_table$Locus.1 == locus,]
     #temp_table2<-dropout_rate_table[dropout_rate_table$Locus.2 == locus,]
@@ -178,12 +184,13 @@
     
 
   }
-  
+  #builds a table with all allele combinations and the corresponding genotype frequencies
   generate_freq_table<-function(allele_combos) {
     allele_combos[,4] <- mapply(geno_freq, as.numeric(allele_combos[,1]), as.numeric(allele_combos[,2]))
     return(allele_combos)
   }
   
+#calculates the genotype frequency
   geno_freq <- function(x,y){
     
     if(x==y){
@@ -196,6 +203,7 @@
     }
   }
   
+  #takes in the allele combinations and the alleles in a replicate and determines the dropout rate
   generate_rep_dropout_table<-function(allele_combos, dropout_rates, rep_info) {
     rates<-rep(NA, ncol(allele_combos))
     for(n in 1:nrow(allele_combos)) {
@@ -208,6 +216,7 @@
     return(allele_combos)
   }
   
+#replaces the mark in the full contributor combo table with the correpsonding genotype frequency from the genotype frequency table
   get_full_freq_table<-function(allele_combos, all_contributor_combos) {
     for(n in 1:nrow(allele_combos)){
       for(m in 1:ncol(all_contributor_combos)){
@@ -217,6 +226,7 @@
     return(all_contributor_combos)
   }
   
+ #generates the drop out rates for the replicate at each contributor combination
   get_full_rep_table<-function(allele_combos, all_contributor_combos){
     for(n in 1:nrow(allele_combos)){
       for(m in 1:ncol(all_contributor_combos)){
@@ -225,7 +235,7 @@
     }
     return(all_contributor_combos)
   }
-  
+  #connects the allele table with the other tables
   get_full_allele_table<-function(allele_combos, all_contributor_combos){
       for(m in 1:ncol(all_contributor_combos)){
         for(n in 1:nrow(all_contributor_combos)){
@@ -236,6 +246,7 @@
       return(all_contributor_combos)
   }
   
+#goes through full table and selects the known contributor(s) then caculates the full probability
   calculate_numerator<-function(knowns, full_table, num_cont, allele_combos, names){
    
    conts<-rep(NA,(length(knowns)/2))
@@ -290,6 +301,7 @@
     
   }
   
+#goes through full table and gets known contributors if they exist and calculates full probabiliy
   calculate_denominator<-function(knowns, allele_combos, full_table, num_cont, names){
     conts<-0
     num<-0
@@ -342,6 +354,7 @@
     return(sum(full_table[,ncol(full_table)]))
   }
   
+#takes in alleles and returns their corresponding mark
   get_mark_with_alleles<-function(allele_combos, alleles) {
     print("alleles from get mark")
     print(alleles)
@@ -353,6 +366,8 @@
     
     return(row["mark"])
   }
+
+#brings all methods together to build the appropriate tables and perform numerator and denominator calculations; returns the likelihood ratio
   make_full_locus_table<-function(locus_alleles,rep_1_alleles, rep_2_alleles, rep_3_alleles, locus, number_contributors, deducible_nondeducible, quantity, n_known1, n_known2, n_known3, 
                                   d_known1, d_known2, d_known3, race){
     dropout_table<-get_dropout_range(number_contributors, deducible_nondeducible)
@@ -453,13 +468,15 @@
     return(LR)
   }
   
+#helper method to see if the known contributor is homozygous
   check_knowns<-function(known){
     if(length(known) == 1){
       known[2]<-known[1]
     }
     return(known)
   }
-  
+ 
+#generates a vector with the allele numbers of known contributors
   generate_name<-function(known_names){
     if(length(known_names) == 1){
       known_names[2]<-known_names[1]
@@ -467,6 +484,7 @@
     return(known_names)
   }
   
+#takes in allele table and reps and builds a table that connects drop in rates
   apply_dropin<-function(full_allele_table, rep, num_contributors, D_ND) {
     if(D_ND == "D"){
       drop_in_frequencies<-c(PC0 = .975, PC1 = .02, PC2 = .005)
@@ -500,7 +518,7 @@
   }
   
 
-  
+  #all code below generates GUI and puts informations gathered in GUI into useable vectors and variables
   ui<-shinyUI(fluidPage(
                 
                 mainPanel(
