@@ -1,4 +1,5 @@
   library(shiny)
+  file_name<-"Report.csv"
   frequencies<-read.csv("Allele_Frequencies.csv",header = FALSE, stringsAsFactors = FALSE)
   drop_out_frequencies<-read.csv("Drop_Out_Rates.csv", header = FALSE, stringsAsFactors = FALSE)
   #drop_in_frequencies<-read.csv("Drop_In_Rates.csv", header = FALSE, stringsAsFactors = FALSE)
@@ -316,6 +317,8 @@
    for(n in 1:nrow(full_table)){
      full_table[n,col]<-prod(full_table[n, num:(col-1)])
    }
+   #write.csv("Numerator", file_name, append = TRUE)
+   #write.csv(full_table, file_name, append = TRUE)
    #print("full table after multiplication")
    
    #print(full_table[1:15,])
@@ -370,9 +373,11 @@
     for(n in 1:nrow(full_table)){
       full_table[n,col]<-prod(full_table[n, num:(col-1)])
     }
-    write.csv(full_table, "denominator.csv")
+    #write.csv(full_table, "denominator.csv")
+    #write.csv("Denominator", file_name, append = TRUE)
+    #write.csv(full_table, file_name, append = TRUE)
     #print("full table from denominator calculation")
-    #print(full_table[1:15,])
+    print(full_table[1:15,])
     #print("probability denominator")
     return(sum(full_table[,ncol(full_table)]))
   }
@@ -515,7 +520,7 @@
     everything<-cbind(full_allele_table, full_frequency_table, full_dropin_table, full_dropout_table)
     #print(everything[1:50,])
     print(nrow(everything))
-    #write.csv(everything, "everything.csv")
+    ##write.csv(everything, "everything.csv")
     print("knowns")
     print(n_known1)
     #print(n_known2)
@@ -551,9 +556,12 @@
     numerator<-calculate_numerator(n_knowns, everything, number_contributors, allele_combos, n_knowns)
     LR<-numerator/denominator
     LRs[n]<-LR
+    
     #print(n_knowns_names)
   }
   print("LRs")
+  print(LRs)
+  return(LRs)
   #print(LRs)
     #print(calculate_numerator(known1, known2, everything, number_contributors, allele_combos))
     #print(calculate_denominator(everything, number_contributors))
@@ -569,6 +577,8 @@
   }
   make_full_locus_table<-function(locus_alleles,rep_1_alleles, rep_2_alleles, rep_3_alleles, locus, number_contributors, deducible_nondeducible, quantity, n_known1, n_known2, n_known3, 
                                   d_known1, d_known2, d_known3, race){
+   
+    #write.csv(locus, file_name, append = TRUE)
     dropout_table<-get_dropout_range(number_contributors, deducible_nondeducible)
     #print("rep 1 alleles")
     #print(rep_1_alleles)
@@ -577,6 +587,8 @@
     dropout_freq_table<-calculate_drop_out(dropout_table, quantity, locus)
     print("locus dropout calculated")
     print(dropout_freq_table)
+    #write.csv("Dropout", file_name, append = TRUE)
+    #write.csv(dropout_freq_table, file_name, append = TRUE)
     #allele_frequency_rep1<-get_allele_freq_2(rep_1_alleles, race)
     #allele_frequency_rep2<-get_allele_freq_2(rep_2_alleles, race)
     #allele_frequency_rep3<-get_allele_freq_2(rep_3_alleles, race)
@@ -600,6 +612,8 @@
     #pg_table_rep3<-generate_freq_table(allele_combos_rep3)
   print("pg table")
   print(pg_table)
+  #write.csv("probability table", file_name, append = TRUE)
+  #write.csv(pg_table, file_name, append = TRUE)
   all_the_combos<-generate_contributor_combos(allele_combos, number_contributors)
   #print("contributor combos")
   #print(all_the_combos)
@@ -642,7 +656,7 @@
   everything<-cbind(full_allele_table, full_frequency_table, full_dropin_table, full_dropout_table)
   #print(everything[1:50,])
   print(nrow(everything))
-  write.csv(everything, "everything.csv")
+  #write.csv(everything, "everything.csv")
     #print("knowns")
     #print(n_known1)
     #print(n_known2)
@@ -676,6 +690,8 @@
   LR<-numerator/denominator
   print("LR")
   print(LR)
+  #write.csv("LR", file_name, append = TRUE)
+  #write.csv(LR, file_name, append = TRUE)
   #return(LR)
   }
   
@@ -702,10 +718,12 @@
   
   apply_dropin<-function(quant, full_allele_table, rep, num_contributors, D_ND) {
     #drop_in_frequencies<-c(PC0 = .975, PC1 = .02, PC2 = .005)
-    if(quant <= 100){
+    if(as.numeric(quant) <= 100){
+      print("less than 100")
       drop_in_frequencies<-c(PC0 = .96, PC1 = .035, PC2 = .005)
       
     }else{
+      print("more than 100")
       drop_in_frequencies<-c(PC0 = .975, PC1 = .02, PC2 = .005)
     }
     columns<-ncol(full_allele_table)
@@ -747,163 +765,211 @@
                                  numericInput(inputId = "numCont", label = "Select the number of contributors (1 - 4)", value = 1, min = 1, max = 4, step = NA),
                                  selectInput(inputId = "d_nd", label = "Is this profile deducible or non-deducible", choices = c("Deducible" = "D", "Non-Deducible" = "ND"), selected = "D", multiple = FALSE),
                                  actionButton(inputId = "submitButton", label = "Submit")),
-                tabPanel("Denominator", tags$h3("Enter alleles of known contributors in the denominator"), tags$h4("U1"), checkboxGroupInput(inputId = "d_known_u_one_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_one_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_one_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_one_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_one_D7", label = "D7",choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                tabPanel("Denominator", tags$h3("Enter alleles of known contributors in the denominator"), tags$h4("K1"),
                 checkboxGroupInput(inputId = "d_known_u_one_D8", label = "D8", choices = frequencies[frequencies$V1 == "D8", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_one_D21", label = "D21", choices = frequencies[frequencies$V1 == "D21", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_one_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_one_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_one_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_one_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_one_vWA", label = "vWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_one_D7", label = "D7",choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_one_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_one_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_one_TH01", label = "TH01", choices = frequencies[frequencies$V1 == "TH01", "V2"], inline = TRUE),
-                
+                checkboxGroupInput(inputId = "d_known_u_one_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_one_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_one_D2", label = "D2", choices = frequencies[frequencies$V1 == "D2", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_one_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE),
-                tags$h4("U2"),
-                checkboxGroupInput(inputId = "d_known_u_two_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_two_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_two_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_two_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_two_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_one_vWA", label = "vWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_one_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_one_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_one_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_one_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
+               
+               
+               
+                
+              
+                
+                tags$h4("K2"),
+                
                 checkboxGroupInput(inputId = "d_known_u_two_D8", label = "D8", choices = frequencies[frequencies$V1 == "D8", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_two_D21", label = "D21", choices = frequencies[frequencies$V1 == "D21", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_two_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_two_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_two_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_two_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_two_vWA", label = "vWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_two_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_two_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_two_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_two_TH01", label = "TH01", choices = frequencies[frequencies$V1 == "TH01", "V2"], inline = TRUE),
-                
+                checkboxGroupInput(inputId = "d_known_u_two_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_two_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_two_D2", label = "D2", choices = frequencies[frequencies$V1 == "D2", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_two_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE),
-                tags$h4("U3"),
-                checkboxGroupInput(inputId = "d_known_u_three_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_three_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_three_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_three_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_three_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_two_vWA", label = "vWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_two_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_two_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_two_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_two_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
+                
+                
+                
+               
+                
+                
+                
+                tags$h4("K3"),
                 checkboxGroupInput(inputId = "d_known_u_three_D8", label = "D8", choices = frequencies[frequencies$V1 == "D8", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_three_D21", label = "D21", choices = frequencies[frequencies$V1 == "D21", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_three_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_three_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_three_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_three_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_three_vWA", label = "vWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_three_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_three_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_three_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_three_TH01", label = "TH01", choices = frequencies[frequencies$V1 == "TH01", "V2"], inline = TRUE),
-                
+                checkboxGroupInput(inputId = "d_known_u_three_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_three_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
                 checkboxGroupInput(inputId = "d_known_u_three_D2", label = "D2", choices = frequencies[frequencies$V1 == "D2", "V2"], inline = TRUE),
-                checkboxGroupInput(inputId = "d_known_u_three_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE)
+                checkboxGroupInput(inputId = "d_known_u_three_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_three_vWA", label = "vWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_three_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_three_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_three_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
+                checkboxGroupInput(inputId = "d_known_u_three_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE)
+                
+                
+                
+                
+                
+                
+                
                 #actionButton(inputId = "submitButton", label = "Submit")
                 
                 ),
                 
-                tabPanel("Numerator", tags$h3("Enter alleles of known contributors in the numerator"), tags$h4("U1"), checkboxGroupInput(inputId = "n_known_u_one_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_one_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_one_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_one_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_one_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                tabPanel("Numerator", tags$h3("Enter alleles of known contributors in the numerator"), tags$h4("K1"), 
                          checkboxGroupInput(inputId = "n_known_u_one_D8", label = "D8", choices = frequencies[frequencies$V1 == "D8", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_u_one_D21", label = "D21", choices = frequencies[frequencies$V1 == "D21", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_one_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_one_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_one_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_one_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_one_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_one_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_one_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_one_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_u_one_TH01", label = "TH01", choices = frequencies[frequencies$V1 == "TH01", "V2"], inline = TRUE),
-                         
+                         checkboxGroupInput(inputId = "n_known_u_one_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_one_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_u_one_D2", label = "D2", choices = frequencies[frequencies$V1 == "D2", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_u_one_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE),
-                         tags$h4("U2"),
-                         checkboxGroupInput(inputId = "n_known_u_two_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_two_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_two_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_two_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_one_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_one_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_one_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_one_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_one_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
+                        
+                         
+                         
+                         tags$h4("K2"),
                          checkboxGroupInput(inputId = "n_known_u_two_D8", label = "D8", choices = frequencies[frequencies$V1 == "D8", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_u_two_D21", label = "D21", choices = frequencies[frequencies$V1 == "D21", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_two_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_two_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_two_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_two_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_two_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_two_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_two_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_two_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_u_two_TH01", label = "TH01", choices = frequencies[frequencies$V1 == "TH01", "V2"], inline = TRUE),
-                         
+                         checkboxGroupInput(inputId = "n_known_u_two_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_two_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_u_two_D2", label = "D2", choices = frequencies[frequencies$V1 == "D2", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_u_two_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE),
-                         tags$h4("U3"),
-                         checkboxGroupInput(inputId = "n_known_u_three_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_three_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_three_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_three_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_three_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_two_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_two_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_two_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_two_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_two_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
+                         
+                         
+                         
+                         
+                         
+                         
+                         
+                         
+                         tags$h4("K3"),
                          checkboxGroupInput(inputId = "n_known_three_D8", label = "D8", choices = frequencies[frequencies$V1 == "D8", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_three_D21", label = "D21", choices = frequencies[frequencies$V1 == "D21", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_three_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_three_FGA", label = "FGA",choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_three_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_three_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_three_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_three_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_three_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_three_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_u_three_TH01", label = "TH01", choices = frequencies[frequencies$V1 == "TH01", "V2"], inline = TRUE),
-                         
+                         checkboxGroupInput(inputId = "n_known_u_three_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_three_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "n_known_u_three_D2", label = "D2", choices = frequencies[frequencies$V1 == "D2", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "n_known_u_three_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE)
+                         checkboxGroupInput(inputId = "n_known_u_three_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_three_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_three_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_three_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_three_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "n_known_u_three_FGA", label = "FGA",choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE)
+                        
+                         
+                         
+                         
+                         
+                         
+                         
                          #actionButton(inputId = "submitButton", label = "Submit")
                          
                 ),
                 
-                tabPanel("Replicates", tags$h3("Enter replicate results"),tags$h4("Rep 1"), checkboxGroupInput(inputId = "rep_one_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_one_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_one_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_one_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_one_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                tabPanel("Replicates", tags$h3("Enter replicate results"),tags$h4("Rep 1"), 
                          checkboxGroupInput(inputId = "rep_one_D8", label = "D8", choices = frequencies[frequencies$V1 == "D8", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_one_D21", label = "D21",choices = frequencies[frequencies$V1 == "D21", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_one_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_one_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_one_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_one_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_one_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_one_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_one_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_one_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_one_TH01", label = "TH01", choices = frequencies[frequencies$V1 == "TH01", "V2"], inline = TRUE),
-                         
+                         checkboxGroupInput(inputId = "rep_one_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_one_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_one_D2", label = "D2", choices = frequencies[frequencies$V1 == "D2", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_one_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_one_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_one_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_one_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_one_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_one_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
+                         
+                         
+                         
+                         
                          tags$h4("Rep 2"),
-                         checkboxGroupInput(inputId = "rep_two_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_two_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_two_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_two_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_two_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_two_D8", label = "D8",choices = frequencies[frequencies$V1 == "D8", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_two_D21", label = "D21", choices = frequencies[frequencies$V1 == "D21", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_two_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_two_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_two_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_two_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_two_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_two_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_two_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_two_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_two_TH01", label = "TH01", choices = frequencies[frequencies$V1 == "TH01", "V2"], inline = TRUE),
-                         
+                         checkboxGroupInput(inputId = "rep_two_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_two_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_two_D2", label = "D2", choices = frequencies[frequencies$V1 == "D2", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_two_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_two_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_two_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_two_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_two_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_two_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
+                         
+                         
+                          
                          tags$h4("Rep 3"),
-                         checkboxGroupInput(inputId = "rep_three_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_three_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_three_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_three_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_three_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_three_D8", label = "D8", choices = frequencies[frequencies$V1 == "D8", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_three_D21", label = "D21", choices = frequencies[frequencies$V1 == "D21", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_three_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_three_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_three_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_three_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_three_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_three_D7", label = "D7", choices = frequencies[frequencies$V1 == "D7", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_three_CSF", label = "CSF", choices = frequencies[frequencies$V1 == "CSF", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_three_D3", label = "D3", choices = frequencies[frequencies$V1 == "D3", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_three_TH01", label = "TH01", choices = frequencies[frequencies$V1 == "TH01", "V2"], inline = TRUE),
-                         
+                         checkboxGroupInput(inputId = "rep_three_D13", label = "D13", choices = frequencies[frequencies$V1 == "D13", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_three_D16", label = "D16", choices = frequencies[frequencies$V1 == "D16", "V2"], inline = TRUE),
                          checkboxGroupInput(inputId = "rep_three_D2", label = "D2", choices = frequencies[frequencies$V1 == "D2", "V2"], inline = TRUE),
-                         checkboxGroupInput(inputId = "rep_three_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE)
+                         checkboxGroupInput(inputId = "rep_three_D19", label = "D19", choices = frequencies[frequencies$V1 == "D19", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_three_vWA", label = "VWA", choices = frequencies[frequencies$V1 == "vWA", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_three_TPOX", label = "TPOX", choices = frequencies[frequencies$V1 == "TPOX", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_three_D18", label = "D18", choices = frequencies[frequencies$V1 == "D18", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_three_D5", label = "D5", choices = frequencies[frequencies$V1 == "D5", "V2"], inline = TRUE),
+                         checkboxGroupInput(inputId = "rep_three_FGA", label = "FGA", choices = frequencies[frequencies$V1 == "FGA", "V2"], inline = TRUE)
+                         
+                         
+                         
+                        
+                         
+                        
+                         
                          
                          
                 )
@@ -917,6 +983,8 @@
   server<- function(input, output){
     observeEvent(input$submitButton, {
       quantity<-input$Quantity
+      print("quantity")
+      print(quantity)
       number_contributors<-input$numCont
       deducible_nondeducible<-input$d_nd
       
@@ -1321,9 +1389,35 @@
       
      
      
+     #all_LRs<-rep(NA, 2)
+     results<-rep(NA, 4)
+    
+     #all_CSF<-calculate_all_LRfunction(CSF_alleles_freq,Rep_1_CSF, Rep_2_CSF, Rep_3_CSF, "CSF", number_contributors, deducible_nondeducible, quantity, n_CSF1, n_CSF2,n_CSF3, d_CSF1, d_CSF2, d_CSF3, "V3")
+     #all_D8<-calculate_all_LRfunction(D8_alleles_freq,Rep_1_D8, Rep_2_D8, Rep_3_D8, "D8", number_contributors, deducible_nondeducible, quantity, n_D81, n_D82,n_D83, d_D81, d_D82, d_D83, "V3")
+     #all_D21<-calculate_all_LRfunction(D21_alleles_freq,Rep_1_D21, Rep_2_D21, Rep_3_D21, "D21", number_contributors, deducible_nondeducible, quantity, n_D211, n_D212,n_D213, d_D211, d_D212, d_D213, "V3")
+     #all_D7<-calculate_all_LRfunction(D7_alleles_freq,Rep_1_D7, Rep_2_D7, Rep_3_D7, "D7", number_contributors, deducible_nondeducible, quantity, n_D71, n_D72,n_D73, d_D71, d_D72, d_D73, "V3")
+     #all_D3<-calculate_all_LRfunction(D3_alleles_freq,Rep_1_D3, Rep_2_D3, Rep_3_D3, "D3", number_contributors, deducible_nondeducible, quantity, n_D31, n_D32,n_D33, d_D31, d_D32, d_D33, "V3")
+     #all_TH01<-calculate_all_LRfunction(TH01_alleles_freq,Rep_1_TH01, Rep_2_TH01, Rep_3_TH01, "TH01", number_contributors, deducible_nondeducible, quantity, n_TH011, n_TH012,n_TH013, d_TH011, d_TH012, d_TH013, "V3")
+     #all_D13<-calculate_all_LRfunction(D13_alleles_freq,Rep_1_D13, Rep_2_D13, Rep_3_D13, "D13", number_contributors, deducible_nondeducible, quantity, n_D131, n_D132,n_D133, d_D131, d_D132, d_D133, "V3")
+     #all_D16<-calculate_all_LRfunction(D16_alleles_freq,Rep_1_D16, Rep_2_D16, Rep_3_D16, "D16", number_contributors, deducible_nondeducible, quantity, n_D161, n_D162,n_D163, d_D161, d_D162, d_D163, "V3")
+     #all_D2<-calculate_all_LRfunction(D2_alleles_freq,Rep_1_D2, Rep_2_D2, Rep_3_D2, "D2", number_contributors, deducible_nondeducible, quantity, n_D21, n_D22,n_D23, d_D21, d_D22, d_D23, "V3")
+     #all_D19<-calculate_all_LRfunction(D19_alleles_freq,Rep_1_D19, Rep_2_D19, Rep_3_D19, "D19", number_contributors, deducible_nondeducible, quantity, n_D191, n_D192,n_D193, d_D191, d_D192, d_D193, "V3")
+     #all_vWA<-calculate_all_LRfunction(vWA_alleles_freq,Rep_1_vWA, Rep_2_vWA, Rep_3_vWA, "vWA", number_contributors, deducible_nondeducible, quantity, n_vWA1, n_vWA2,n_vWA3, d_vWA1, d_vWA2, d_vWA3, "V3")
+     #all_TPOX<-calculate_all_LRfunction(TPOX,Rep_1_TPOX, Rep_2_TPOX, Rep_3_TPOX, "TPOX", number_contributors, deducible_nondeducible, quantity, n_TPOX1, n_TPOX2,n_TPOX3, d_TPOX1, d_TPOX2, d_TPOX3, "V3")
+     #all_D18<-calculate_all_LRfunction(D18_alleles_freq,Rep_1_D18, Rep_2_D18, Rep_3_D18, "D18", number_contributors, deducible_nondeducible, quantity, n_D181, n_D182,n_D183, d_D181, d_D182, d_D183, "V3")
+     #all_D5<-calculate_all_LRfunction(D5_alleles_freq,Rep_1_D5, Rep_2_D5, Rep_3_D5, "D5", number_contributors, deducible_nondeducible, quantity, n_D51, n_D52,n_D53, d_D51, d_D52, d_D53, "V3")
+     #all_FGA<-calculate_all_LRfunction(FGA_alleles_freq,Rep_1_FGA, Rep_2_FGA, Rep_3_FGA, "FGA", number_contributors, deducible_nondeducible, quantity, n_FGA1, n_FGA2,n_FGA3, d_FGA1, d_FGA2, d_FGA3, "V3")
      
-     #calculate_all_LRfunction(CSF_alleles_freq,Rep_1_CSF, Rep_2_CSF, Rep_3_CSF, "CSF", number_contributors, deducible_nondeducible, quantity, n_CSF1, n_CSF2,n_CSF3, d_CSF1, d_CSF2, d_CSF3, "V3")
-     calculate_all_LRfunction(D8_alleles_freq,Rep_1_D8, Rep_2_D8, Rep_3_D8, "D8", number_contributors, deducible_nondeducible, quantity, n_D81, n_D82,n_D83, d_D81, d_D82, d_D83, "V3")
+     
+     #temp<-expand.grid(a=all_CSF, b=all_D8, c=all_D21, d=all_D7, e=all_D3, f=all_TH01, g=all_D13, h=all_D16, i=all_D2, j=all_D19, k=all_vWA, l=all_TPOX, m=all_D18, n=all_D5, o=all_FGA)
+     #temp<-expand.grid(b=all_D8, c=all_D21)
+     #for(n in 1:nrow(temp)){
+       #temp[n,16]<-prod(as.numeric(temp[n,1:15]))
+       #print(prod(as.numeric(temp[n,1:2])))
+     #}
+     #write.csv(temp, "all_LR.csv")
+     #print("all LR grid")
+     #print(temp)
      #make_full_locus_table(D2_alleles_freq,Rep_1_D2, Rep_2_D2, Rep_3_D2, "D2", number_contributors, deducible_nondeducible, quantity, n_D21, n_D22,n_D23, d_D21, d_D22, d_D23, "V3")
      #make_full_locus_table(D13_alleles_freq,Rep_1_D13, Rep_2_D13, Rep_3_D13, "D13", number_contributors, deducible_nondeducible, quantity, n_D131, n_D132,n_D133, d_D131, d_D132, d_D133, "V3")
      #make_full_locus_table(CSF_alleles_freq,Rep_1_CSF, Rep_2_CSF, Rep_3_CSF, "CSF", number_contributors, deducible_nondeducible, quantity, n_CSF1, n_CSF2,n_CSF3, d_CSF1, d_CSF2, d_CSF3, "V3")
@@ -1346,29 +1440,84 @@
      #print(Rep_2_D16)
      #print("Rep 3 D16")
      #print(Rep_3_D16)
-    
-     #all_locuses<-rep(NA, 15)
-     #all_locuses[1]<-make_full_locus_table(CSF_alleles_freq,Rep_1_CSF, Rep_2_CSF, Rep_3_CSF, "CSF", number_contributors, deducible_nondeducible, quantity, n_CSF1, n_CSF2,n_CSF3, d_CSF1, d_CSF2, d_CSF3, "V3")
-     #all_locuses[2]<-make_full_locus_table(D3_alleles_freq,Rep_1_D3, Rep_2_D3, Rep_3_D3, "D3", number_contributors, deducible_nondeducible, quantity, n_D31, n_D32,n_D33, d_D31, d_D32, d_D33, "V3")
-     #all_locuses[3]<-make_full_locus_table(D16_alleles_freq,Rep_1_D16, Rep_2_D16, Rep_3_D16, "D16", number_contributors, deducible_nondeducible, quantity, n_D161, n_D162,n_D163, d_D161, d_D162, d_D163, "V3")
-     #all_locuses[4]<-make_full_locus_table(D7_alleles_freq,Rep_1_D7, Rep_2_D7, Rep_3_D7, "D7", number_contributors, deducible_nondeducible, quantity, n_D71, n_D72,n_D73, d_D71, d_D72, d_D73, "V3")
-     #all_locuses[5]<-make_full_locus_table(D8_alleles_freq,Rep_1_D8, Rep_2_D8, Rep_3_D8, "D8", number_contributors, deducible_nondeducible, quantity, n_D81, n_D82,n_D83, d_D81, d_D82, d_D83, "V3")
-     #all_locuses[6]<-make_full_locus_table(D21_alleles_freq,Rep_1_D21, Rep_2_D21, Rep_3_D21, "D21", number_contributors, deducible_nondeducible, quantity, n_D211, n_D212,n_D213, d_D211, d_D212, d_D213, "V3")
-     #all_locuses[7]<-make_full_locus_table(D18_alleles_freq,Rep_1_D18, Rep_2_D18, Rep_3_D18, "D18", number_contributors, deducible_nondeducible, quantity, n_D181, n_D182,n_D183, d_D181, d_D182, d_D183, "V3")
-     #all_locuses[8]<-make_full_locus_table(FGA_alleles_freq,Rep_1_FGA, Rep_2_FGA, Rep_3_FGA, "FGA", number_contributors, deducible_nondeducible, quantity, n_FGA1, n_FGA2,n_FGA3, d_FGA1, d_FGA2, d_FGA3, "V3")
-     #all_locuses[9]<-make_full_locus_table(D5_alleles_freq,Rep_1_D5, Rep_2_D5, Rep_3_D5, "D5", number_contributors, deducible_nondeducible, quantity, n_D51, n_D52,n_D53, d_D51, d_D52, d_D53, "V3")
-     #all_locuses[10]<-make_full_locus_table(D13_alleles_freq,Rep_1_D13, Rep_2_D13, Rep_3_D13, "D13", number_contributors, deducible_nondeducible, quantity, n_D131, n_D132,n_D133, d_D131, d_D132, d_D133, "V3")
-     #all_locuses[11]<-make_full_locus_table(vWA_alleles_freq,Rep_1_vWA, Rep_2_vWA, Rep_3_vWA, "vWA", number_contributors, deducible_nondeducible, quantity, n_vWA1, n_vWA2,n_vWA3, d_vWA1, d_vWA2, d_vWA3, "V3")
-     #all_locuses[12]<-make_full_locus_table(TH01_alleles_freq,Rep_1_TH01, Rep_2_TH01, Rep_3_TH01, "TH01", number_contributors, deducible_nondeducible, quantity, n_TH011, n_TH012,n_TH013, d_TH011, d_TH012, d_TH013, "V3")
-     #all_locuses[13]<-make_full_locus_table(D2_alleles_freq,Rep_1_D2, Rep_2_D2, Rep_3_D2, "D2", number_contributors, deducible_nondeducible, quantity, n_D21, n_D22,n_D23, d_D21, d_D22, d_D23, "V3")
-     #all_locuses[14]<-make_full_locus_table(D19_alleles_freq,Rep_1_D19, Rep_2_D19, Rep_3_D19, "D19", number_contributors, deducible_nondeducible, quantity, n_D191, n_D192,n_D193, d_D191, d_D192, d_D193, "V3")
-     #all_locuses[15]<-make_full_locus_table(TPOX,Rep_1_TPOX, Rep_2_TPOX, Rep_3_TPOX, "TPOX", number_contributors, deducible_nondeducible, quantity, n_TPOX1, n_TPOX2,n_TPOX3, d_TPOX1, d_TPOX2, d_TPOX3, "V3")
-     #print(all_locuses)
-     #print(prod(as.numeric(all_locuses)))
-      #TPOX_comb<-
      
       #z<- myFunction("D19", rep_three_D19)
       #print(z)
+     results<-rep(NA, 4)
+     races<-c("V3", "V4", "V5", "V6")
+     for(n in 1:4){
+       filename<-paste("Report", races[n], sep = "_")
+       race<-races[n]
+       all_locuses<-rep(NA, 15)
+       all_locuses[1]<-make_full_locus_table(CSF_alleles_freq,Rep_1_CSF, Rep_2_CSF, Rep_3_CSF, "CSF", number_contributors, deducible_nondeducible, quantity, n_CSF1, n_CSF2,n_CSF3, d_CSF1, d_CSF2, d_CSF3, race)
+       write("CSF", filename, append = TRUE)
+       write(all_locuses[1], filename, append = TRUE)
+       
+       all_locuses[2]<-make_full_locus_table(D3_alleles_freq,Rep_1_D3, Rep_2_D3, Rep_3_D3, "D3", number_contributors, deducible_nondeducible, quantity, n_D31, n_D32,n_D33, d_D31, d_D32, d_D33, race)
+       write("D3", filename, append = TRUE)
+       write(all_locuses[2], filename, append = TRUE)
+       
+       all_locuses[3]<-make_full_locus_table(D16_alleles_freq,Rep_1_D16, Rep_2_D16, Rep_3_D16, "D16", number_contributors, deducible_nondeducible, quantity, n_D161, n_D162,n_D163, d_D161, d_D162, d_D163, race)
+       write("D16", filename, append = TRUE)
+       write(all_locuses[3], filename, append = TRUE)
+       
+       all_locuses[4]<-make_full_locus_table(D7_alleles_freq,Rep_1_D7, Rep_2_D7, Rep_3_D7, "D7", number_contributors, deducible_nondeducible, quantity, n_D71, n_D72,n_D73, d_D71, d_D72, d_D73, race)
+       write("D7", filename, append = TRUE)
+       write(all_locuses[4], filename, append = TRUE)
+       
+       all_locuses[5]<-make_full_locus_table(D8_alleles_freq,Rep_1_D8, Rep_2_D8, Rep_3_D8, "D8", number_contributors, deducible_nondeducible, quantity, n_D81, n_D82,n_D83, d_D81, d_D82, d_D83, race)
+       write("D8", filename, append = TRUE)
+       write(all_locuses[5], filename, append = TRUE)
+       
+       all_locuses[6]<-make_full_locus_table(D21_alleles_freq,Rep_1_D21, Rep_2_D21, Rep_3_D21, "D21", number_contributors, deducible_nondeducible, quantity, n_D211, n_D212,n_D213, d_D211, d_D212, d_D213, race)
+       write("D21", filename, append = TRUE)
+       write(all_locuses[6], filename, append = TRUE)
+       
+       all_locuses[7]<-make_full_locus_table(D18_alleles_freq,Rep_1_D18, Rep_2_D18, Rep_3_D18, "D18", number_contributors, deducible_nondeducible, quantity, n_D181, n_D182,n_D183, d_D181, d_D182, d_D183, race)
+       write("D18", filename, append = TRUE)
+       write(all_locuses[7], filename, append = TRUE)
+       
+       all_locuses[8]<-make_full_locus_table(FGA_alleles_freq,Rep_1_FGA, Rep_2_FGA, Rep_3_FGA, "FGA", number_contributors, deducible_nondeducible, quantity, n_FGA1, n_FGA2,n_FGA3, d_FGA1, d_FGA2, d_FGA3, race)
+       write("FGA", filename, append = TRUE)
+       write(all_locuses[8], filename, append = TRUE)
+       
+       all_locuses[9]<-make_full_locus_table(D5_alleles_freq,Rep_1_D5, Rep_2_D5, Rep_3_D5, "D5", number_contributors, deducible_nondeducible, quantity, n_D51, n_D52,n_D53, d_D51, d_D52, d_D53, race)
+       write("D5", filename, append = TRUE)
+       write(all_locuses[9], filename, append = TRUE)
+       
+       all_locuses[10]<-make_full_locus_table(D13_alleles_freq,Rep_1_D13, Rep_2_D13, Rep_3_D13, "D13", number_contributors, deducible_nondeducible, quantity, n_D131, n_D132,n_D133, d_D131, d_D132, d_D133, race)
+       write("D13", filename, append = TRUE)
+       write(all_locuses[10], filename, append = TRUE)
+       
+       all_locuses[11]<-make_full_locus_table(vWA_alleles_freq,Rep_1_vWA, Rep_2_vWA, Rep_3_vWA, "vWA", number_contributors, deducible_nondeducible, quantity, n_vWA1, n_vWA2,n_vWA3, d_vWA1, d_vWA2, d_vWA3, race)
+       write("vWA", filename, append = TRUE)
+       write(all_locuses[11], filename, append = TRUE)  
+       
+       all_locuses[12]<-make_full_locus_table(TH01_alleles_freq,Rep_1_TH01, Rep_2_TH01, Rep_3_TH01, "TH01", number_contributors, deducible_nondeducible, quantity, n_TH011, n_TH012,n_TH013, d_TH011, d_TH012, d_TH013, race)
+       write("TH01", filename, append = TRUE)
+       write(all_locuses[12], filename, append = TRUE)
+       
+       all_locuses[13]<-make_full_locus_table(D2_alleles_freq,Rep_1_D2, Rep_2_D2, Rep_3_D2, "D2", number_contributors, deducible_nondeducible, quantity, n_D21, n_D22,n_D23, d_D21, d_D22, d_D23, race)
+       write("D2", filename, append = TRUE)
+       write(all_locuses[13], filename, append = TRUE)
+       
+       all_locuses[14]<-make_full_locus_table(D19_alleles_freq,Rep_1_D19, Rep_2_D19, Rep_3_D19, "D19", number_contributors, deducible_nondeducible, quantity, n_D191, n_D192,n_D193, d_D191, d_D192, d_D193, race)
+       write("D19", filename, append = TRUE)
+       write(all_locuses[14], filename, append = TRUE)
+       
+       all_locuses[15]<-make_full_locus_table(TPOX,Rep_1_TPOX, Rep_2_TPOX, Rep_3_TPOX, "TPOX", number_contributors, deducible_nondeducible, quantity, n_TPOX1, n_TPOX2,n_TPOX3, d_TPOX1, d_TPOX2, d_TPOX3, race)
+       write("TPOX", filename, append = TRUE)
+       write(all_locuses[15], filename, append = TRUE)
+       
+       print(all_locuses)
+       print(prod(as.numeric(all_locuses)))
+       results[n]<-prod(as.numeric(all_locuses))
+       write("Result:", filename, append = TRUE)
+       write(results[n], filename, append = TRUE)
+     }
+     print("RESULTS")
+     print(results)
+   
       
       })
    
