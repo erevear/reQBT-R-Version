@@ -243,12 +243,44 @@
   }
   
   get_full_freq_table<-function(allele_combos, all_contributor_combos) {
+    col<-ncol(all_contributor_combos)
+    row<-nrow(all_contributor_combos)
+    a<-matrix(, nrow = row, ncol = col)
+    print("from get_full_freq_table")
+    #print("allele combos")
+    #print(allele_combos)
+    #print("all contributor combos")
+    #print(all_contributor_combos[1:100,])
+    ptm1<-proc.time()
     for(n in 1:nrow(allele_combos)){
       for(m in 1:ncol(all_contributor_combos)){
         all_contributor_combos[,m]<-replace(all_contributor_combos[,m], all_contributor_combos[,m]==allele_combos[n,"mark"], allele_combos[n,"probability"])
       }
     }
+    #print("loop time:")
+    #print(proc.time() - ptm1)
+    x<-mapply(get_full_freq_table_helper, all_contributor_combos[,1], allele_combos[,"mark"], allele_combos[,"probability"])
+    y<-mapply(get_full_freq_table_helper, all_contributor_combos[,2], allele_combos[,"mark"], allele_combos[,"probability"])
+    z<-mapply(get_full_freq_table_helper, all_contributor_combos[,3], allele_combos[,"mark"], allele_combos[,"probability"])
+    #a<-cbind(x,y,z)
+    ptm2<-proc.time()
+    for(m in 1:ncol(a)){
+      a[,m]<-mapply(get_full_freq_table_helper, all_contributor_combos[,m], allele_combos[,"mark"], allele_combos[,"probability"])
+    }
+    
+    #a<-a[,1:num]
+    #print("apply time:")
+    #print(proc.time() - ptm2)
+    #print("after loop")
+    #print(all_contributor_combos[1:100,])
+    #print(a[1:100,])
     return(all_contributor_combos)
+  }
+  
+  get_full_freq_table_helper<-function(all_contributor_combos, mark, probability){
+    #X[X < .1] <- 0
+    #all_contributor_combos[all_contributor_combos==mark] <- probability
+    replace(all_contributor_combos, all_contributor_combos==mark, probability)
   }
   
   get_full_rep_table<-function(allele_combos, all_contributor_combos){
@@ -271,7 +303,8 @@
   }
   
   calculate_numerator<-function(knowns, full_table, num_cont, allele_combos, names){
-   
+   print("allele combos from calculate numerator")
+   print(names)
    conts<-rep(NA,(length(knowns)/2))
    #print("conts empty")
    #print(conts)
@@ -284,8 +317,8 @@
      l<-l+2
      #n<-n+1
    }
-   #print("contributors")
-   #print(conts)
+   print("contributors")
+   print(conts)
    #print(known_contributor1[,"V3"])
    #print("contributor 2")
    #print(known_contributor2[,"V3"])
@@ -377,7 +410,7 @@
     #write.csv("Denominator", file_name, append = TRUE)
     #write.csv(full_table, file_name, append = TRUE)
     #print("full table from denominator calculation")
-    print(full_table[1:15,])
+    #print(full_table[1:15,])
     #print("probability denominator")
     return(sum(full_table[,ncol(full_table)]))
   }
@@ -398,8 +431,8 @@
    full_table<-rep(NA, nrow(all_the_combos))
     if(!("INC"%in%rep_1) & length(rep_1) > 0){
       Rep_1_dropout_table<-generate_rep_dropout_table(allele_combos, dropout_freq_table, rep_1)
-      print("dropout tables")
-      print(Rep_1_dropout_table)
+      #print("dropout tables")
+      #print(Rep_1_dropout_table)
       full_rep1_table<-get_full_rep_table(Rep_1_dropout_table, all_the_combos)
       #print(full_rep1_table)
       full_table<-cbind(full_table, full_rep1_table)
@@ -445,6 +478,33 @@
     return(full_table)
   }
   
+  calculate_LR_combos<-function(all_LRs_1, all_LRs_2) {
+    
+    print("all lrs 1")
+    print(all_LRs_1)
+    print("all lrs 2")
+    print(all_LRs_2)
+    full_matrix<-expand.grid(a=all_LRs_1, b=all_LRs_2)
+    full_matrix<-full_matrix[1:1000,]
+    full_matrix<-na.omit(full_matrix)
+    print("full matrix")
+    print(full_matrix)
+    for(n in 1:nrow(full_matrix)){
+      full_matrix[n,'c']<-prod(full_matrix[n,'a'], full_matrix[n, 'b'])
+    }
+    #c <- c[!is.na(c)]
+    return(full_matrix[,'c'])
+  }
+  
+  generate_all_possible_combos<-function(locus){
+    a<-frequencies[frequencies$V1 == locus, ]
+    a<-a[,"V2"]
+    b<-a
+    temp<-expand.grid(allele1=a, allele2=b)
+    #print(temp[1:100,])
+    return(temp)
+  }
+  
   calculate_all_LRfunction<-function(locus_alleles,rep_1_alleles, rep_2_alleles, rep_3_alleles, locus, number_contributors, deducible_nondeducible, quantity, n_known1, n_known2, n_known3, 
                            d_known1, d_known2, d_known3, race){
     dropout_table<-get_dropout_range(number_contributors, deducible_nondeducible)
@@ -453,8 +513,8 @@
     #print("dropout table")
     #print(dropout_table)
     dropout_freq_table<-calculate_drop_out(dropout_table, quantity, locus)
-    print("locus dropout calculated")
-    print(dropout_freq_table)
+    #print("locus dropout calculated")
+    #print(dropout_freq_table)
     #allele_frequency_rep1<-get_allele_freq_2(rep_1_alleles, race)
     #allele_frequency_rep2<-get_allele_freq_2(rep_2_alleles, race)
     #allele_frequency_rep3<-get_allele_freq_2(rep_3_alleles, race)
@@ -470,14 +530,14 @@
     #allele_combos_rep1<-generate_allele_combos(allele_frequency_rep1)
     #allele_combos_rep2<-generate_allele_combos(allele_frequency_rep2)
     #allele_combos_rep3<-generate_allele_combos(allele_frequency_rep3)
-    print("allele combos")
-    print(allele_combos)
+    #print("allele combos")
+    #print(allele_combos)
     pg_table<-generate_freq_table(allele_combos)
     #pg_table_rep1<-generate_freq_table(allele_combos_rep1)
     #pg_table_rep2<-generate_freq_table(allele_combos_rep2)
     #pg_table_rep3<-generate_freq_table(allele_combos_rep3)
-    print("pg table")
-    print(pg_table)
+    #print("pg table")
+    #print(pg_table)
     all_the_combos<-generate_contributor_combos(allele_combos, number_contributors)
     #print("contributor combos")
     #print(all_the_combos)
@@ -519,10 +579,10 @@
     #print(with_drop_in)
     everything<-cbind(full_allele_table, full_frequency_table, full_dropin_table, full_dropout_table)
     #print(everything[1:50,])
-    print(nrow(everything))
+    #print(nrow(everything))
     ##write.csv(everything, "everything.csv")
-    print("knowns")
-    print(n_known1)
+    #print("knowns")
+    #print(n_known1)
     #print(n_known2)
     #print(n_known3)
   #n_knowns<-c(check_knowns(n_known1[,race], allele_combos), check_knowns(n_known2[,race],allele_combos), check_knowns(n_known3[,race],allele_combos))
@@ -546,20 +606,22 @@
     
   #numerator<-calculate_numerator(n_knowns, everything, number_contributors, allele_combos, n_knowns_names)
   denominator<-calculate_denominator(d_knowns, allele_combos, everything, number_contributors, d_knowns_names)
-  LRs<-rep(NA, nrow(allele_combos))
-  for(n in 1:nrow(allele_combos)){
-    n_known1<-c(allele_combos[n,"allele1"], allele_combos[n,"allele2"])
+  combos<-generate_all_possible_combos(locus)
+  print(combos[1:100,])
+  LRs<-rep(NA, nrow(combos))
+  for(n in 1:nrow(combos)){
+    n_known1<-c(combos[n,"allele1"], combos[n,"allele2"])
     
-    n_knowns<-c(n_known1, check_knowns(n_known2[,"V2"],allele_combos), check_knowns(n_known3[,"V2"],allele_combos))
-    print("knowns")
-    print(n_knowns)
+    n_knowns<-c(check_knowns(n_known1, allele_combos), check_knowns(n_known2[,"V2"],allele_combos), check_knowns(n_known3[,"V2"],allele_combos))
+    #print("knowns")
+   #print(n_knowns)
     numerator<-calculate_numerator(n_knowns, everything, number_contributors, allele_combos, n_knowns)
     LR<-numerator/denominator
     LRs[n]<-LR
     
     #print(n_knowns_names)
   }
-  print("LRs")
+  #print("LRs")
   print(LRs)
   return(LRs)
   #print(LRs)
@@ -585,8 +647,8 @@
     #print("dropout table")
     #print(dropout_table)
     dropout_freq_table<-calculate_drop_out(dropout_table, quantity, locus)
-    print("locus dropout calculated")
-    print(dropout_freq_table)
+    #print("locus dropout calculated")
+    #print(dropout_freq_table)
     #write.csv("Dropout", file_name, append = TRUE)
     #write.csv(dropout_freq_table, file_name, append = TRUE)
     #allele_frequency_rep1<-get_allele_freq_2(rep_1_alleles, race)
@@ -604,14 +666,14 @@
     #allele_combos_rep1<-generate_allele_combos(allele_frequency_rep1)
     #allele_combos_rep2<-generate_allele_combos(allele_frequency_rep2)
     #allele_combos_rep3<-generate_allele_combos(allele_frequency_rep3)
-    #print("allele combos")
-    #print(allele_combos)
-  pg_table<-generate_freq_table(allele_combos)
+    print("allele combos")
+    print(allele_combos)
+    pg_table<-generate_freq_table(allele_combos)
     #pg_table_rep1<-generate_freq_table(allele_combos_rep1)
     #pg_table_rep2<-generate_freq_table(allele_combos_rep2)
     #pg_table_rep3<-generate_freq_table(allele_combos_rep3)
-  print("pg table")
-  print(pg_table)
+  #print("pg table")
+  #print(pg_table)
   #write.csv("probability table", file_name, append = TRUE)
   #write.csv(pg_table, file_name, append = TRUE)
   all_the_combos<-generate_contributor_combos(allele_combos, number_contributors)
@@ -655,7 +717,7 @@
     #print(with_drop_in)
   everything<-cbind(full_allele_table, full_frequency_table, full_dropin_table, full_dropout_table)
   #print(everything[1:50,])
-  print(nrow(everything))
+  #print(nrow(everything))
   #write.csv(everything, "everything.csv")
     #print("knowns")
     #print(n_known1)
@@ -719,11 +781,11 @@
   apply_dropin<-function(quant, full_allele_table, rep, num_contributors, D_ND) {
     #drop_in_frequencies<-c(PC0 = .975, PC1 = .02, PC2 = .005)
     if(as.numeric(quant) <= 100){
-      print("less than 100")
+      #print("less than 100")
       drop_in_frequencies<-c(PC0 = .96, PC1 = .035, PC2 = .005)
       
     }else{
-      print("more than 100")
+      #print("more than 100")
       drop_in_frequencies<-c(PC0 = .975, PC1 = .02, PC2 = .005)
     }
     columns<-ncol(full_allele_table)
@@ -755,6 +817,40 @@
     return(full_allele_table)
   }
   
+  create_LR_table<-function(D8, D21, D7, CSF, D3, TH01, D13, D16, D2, D19, vWA, TPOX, D18, D5, FGA){
+    LR_table<-matrix(nrow=1000, ncol=15)
+    temp<-rep(NA, 1000)
+    for(n in 1:1000){
+      #D8<-sample(D8)
+      #D21<-sample(D21)
+      #D7<-sample(D7)
+      #CSF<-sample(CSF)
+      #D3<-sample(D3)
+      #TH01<-sample(TH01)
+      #D13<-sample(D13)
+      #D16<-sample(D16)
+      #D2<-sample(D2)
+      #D19<-sample(D19)
+      #vWA<-sample(vWA)
+      #TPOX<-sample(TPOX)
+      #D18<-sample(D18)
+      #D5<-sample(D5)
+      #FGA<-sample(FGA)
+      #temp[n]<-prod(as.numeric(D8[1], D21[1], D7[1], CSF[1], D3[1], TH01[1], D13[1], D16[1], D2[1], D19[1], vWA[1], TPOX[1], D18[1], D5[1], FGA[1]))
+      #temp_2<-c(D8[sample(1:length(D8),1)], D21[sample(1:length(D21),1)], D7[sample(1:length(D7),1)], CSF[sample(1:length(CSF),1)], D3[sample(1:length(D3),1)], 
+       #         TH01[sample(1:length(TH01),1)], D13[sample(1:length(D13),1)], D16[sample(1:length(D16),1)], D2[sample(1:length(D2),1)], 
+      #          D19[sample(1:length(D19),1)], vWA[sample(1:length(vWA),1)], TPOX[sample(1:length(TPOX),1)], D18[sample(1:length(D18),1)], 
+      #          D5[sample(1:length(D5),1)], FGA[sample(1:length(FGA),1)])
+      #print(temp_2)
+      
+      temp[n]<-prod(D8[sample(1:length(D8),1)], D21[sample(1:length(D21),1)], D7[sample(1:length(D7),1)], CSF[sample(1:length(CSF),1)], D3[sample(1:length(D3),1)], 
+                                TH01[sample(1:length(TH01),1)], D13[sample(1:length(D13),1)], D16[sample(1:length(D16),1)], D2[sample(1:length(D2),1)], 
+                                D19[sample(1:length(D19),1)], vWA[sample(1:length(vWA),1)], TPOX[sample(1:length(TPOX),1)], D18[sample(1:length(D18),1)], 
+                                D5[sample(1:length(D5),1)], FGA[sample(1:length(FGA),1)])
+    }
+    temp<-temp[order(-temp)]
+    return(temp)
+  }
 
   
   ui<-shinyUI(fluidPage(
@@ -972,7 +1068,9 @@
                          
                          
                          
-                )
+                ),
+                
+                tabPanel("Results", textOutput("label_1"), tableOutput("suspect_summary"), tableOutput("suspect_loci"), tableOutput("false_positives"))
                 
                 ))
                 
@@ -986,6 +1084,7 @@
       print("quantity")
       print(quantity)
       number_contributors<-input$numCont
+      print("number of contributors")
       deducible_nondeducible<-input$d_nd
       
       #print("location in do table")
@@ -1387,28 +1486,170 @@
       Rep_3_D2<-getFreq("D2", rep_three_D2)
       Rep_3_D19<-getFreq("D19", rep_three_D19)
       
-     
-     
-     #all_LRs<-rep(NA, 2)
+     loci_labels<-c("CSF", "D3", "D16", "D7", "D8", "D21", "D18", "FGA", "D5", "D13", "vWA", "TH01", "D2", "D19", "TPOX")
+     loci_table<-matrix(nrow=4, ncol=15)
+     colnames(loci_table)<-loci_labels
      results<-rep(NA, 4)
-    
-     #all_CSF<-calculate_all_LRfunction(CSF_alleles_freq,Rep_1_CSF, Rep_2_CSF, Rep_3_CSF, "CSF", number_contributors, deducible_nondeducible, quantity, n_CSF1, n_CSF2,n_CSF3, d_CSF1, d_CSF2, d_CSF3, "V3")
-     #all_D8<-calculate_all_LRfunction(D8_alleles_freq,Rep_1_D8, Rep_2_D8, Rep_3_D8, "D8", number_contributors, deducible_nondeducible, quantity, n_D81, n_D82,n_D83, d_D81, d_D82, d_D83, "V3")
-     #all_D21<-calculate_all_LRfunction(D21_alleles_freq,Rep_1_D21, Rep_2_D21, Rep_3_D21, "D21", number_contributors, deducible_nondeducible, quantity, n_D211, n_D212,n_D213, d_D211, d_D212, d_D213, "V3")
-     #all_D7<-calculate_all_LRfunction(D7_alleles_freq,Rep_1_D7, Rep_2_D7, Rep_3_D7, "D7", number_contributors, deducible_nondeducible, quantity, n_D71, n_D72,n_D73, d_D71, d_D72, d_D73, "V3")
-     #all_D3<-calculate_all_LRfunction(D3_alleles_freq,Rep_1_D3, Rep_2_D3, Rep_3_D3, "D3", number_contributors, deducible_nondeducible, quantity, n_D31, n_D32,n_D33, d_D31, d_D32, d_D33, "V3")
-     #all_TH01<-calculate_all_LRfunction(TH01_alleles_freq,Rep_1_TH01, Rep_2_TH01, Rep_3_TH01, "TH01", number_contributors, deducible_nondeducible, quantity, n_TH011, n_TH012,n_TH013, d_TH011, d_TH012, d_TH013, "V3")
-     #all_D13<-calculate_all_LRfunction(D13_alleles_freq,Rep_1_D13, Rep_2_D13, Rep_3_D13, "D13", number_contributors, deducible_nondeducible, quantity, n_D131, n_D132,n_D133, d_D131, d_D132, d_D133, "V3")
-     #all_D16<-calculate_all_LRfunction(D16_alleles_freq,Rep_1_D16, Rep_2_D16, Rep_3_D16, "D16", number_contributors, deducible_nondeducible, quantity, n_D161, n_D162,n_D163, d_D161, d_D162, d_D163, "V3")
-     #all_D2<-calculate_all_LRfunction(D2_alleles_freq,Rep_1_D2, Rep_2_D2, Rep_3_D2, "D2", number_contributors, deducible_nondeducible, quantity, n_D21, n_D22,n_D23, d_D21, d_D22, d_D23, "V3")
-     #all_D19<-calculate_all_LRfunction(D19_alleles_freq,Rep_1_D19, Rep_2_D19, Rep_3_D19, "D19", number_contributors, deducible_nondeducible, quantity, n_D191, n_D192,n_D193, d_D191, d_D192, d_D193, "V3")
-     #all_vWA<-calculate_all_LRfunction(vWA_alleles_freq,Rep_1_vWA, Rep_2_vWA, Rep_3_vWA, "vWA", number_contributors, deducible_nondeducible, quantity, n_vWA1, n_vWA2,n_vWA3, d_vWA1, d_vWA2, d_vWA3, "V3")
-     #all_TPOX<-calculate_all_LRfunction(TPOX,Rep_1_TPOX, Rep_2_TPOX, Rep_3_TPOX, "TPOX", number_contributors, deducible_nondeducible, quantity, n_TPOX1, n_TPOX2,n_TPOX3, d_TPOX1, d_TPOX2, d_TPOX3, "V3")
+     results_table<-matrix(nrow=1, ncol=4)
+     race_labels<-c("Black", "Caucasian", "Hispanic", "Asian")
+     colnames(results_table)<-race_labels
+     races<-c("V3", "V4", "V5", "V6")
+     for(n in 1:4){
+       #filename<-paste("Report", races[n], sep = "_")
+       race<-races[n]
+       all_locuses<-rep(NA, 15)
+       all_locuses[1]<-make_full_locus_table(CSF_alleles_freq,Rep_1_CSF, Rep_2_CSF, Rep_3_CSF, "CSF", number_contributors, deducible_nondeducible, quantity, n_CSF1, n_CSF2,n_CSF3, d_CSF1, d_CSF2, d_CSF3, race)
+       #write("CSF", filename, append = TRUE)
+       #write(all_locuses[1], filename, append = TRUE)
+       
+       all_locuses[2]<-make_full_locus_table(D3_alleles_freq,Rep_1_D3, Rep_2_D3, Rep_3_D3, "D3", number_contributors, deducible_nondeducible, quantity, n_D31, n_D32,n_D33, d_D31, d_D32, d_D33, race)
+       #write("D3", filename, append = TRUE)
+       #write(all_locuses[2], filename, append = TRUE)
+       
+       all_locuses[3]<-make_full_locus_table(D16_alleles_freq,Rep_1_D16, Rep_2_D16, Rep_3_D16, "D16", number_contributors, deducible_nondeducible, quantity, n_D161, n_D162,n_D163, d_D161, d_D162, d_D163, race)
+       #write("D16", filename, append = TRUE)
+       #write(all_locuses[3], filename, append = TRUE)
+       
+       all_locuses[4]<-make_full_locus_table(D7_alleles_freq,Rep_1_D7, Rep_2_D7, Rep_3_D7, "D7", number_contributors, deducible_nondeducible, quantity, n_D71, n_D72,n_D73, d_D71, d_D72, d_D73, race)
+       #write("D7", filename, append = TRUE)
+       #write(all_locuses[4], filename, append = TRUE)
+       
+       all_locuses[5]<-make_full_locus_table(D8_alleles_freq,Rep_1_D8, Rep_2_D8, Rep_3_D8, "D8", number_contributors, deducible_nondeducible, quantity, n_D81, n_D82,n_D83, d_D81, d_D82, d_D83, race)
+       #write("D8", filename, append = TRUE)
+       #write(all_locuses[5], filename, append = TRUE)
+       
+       all_locuses[6]<-make_full_locus_table(D21_alleles_freq,Rep_1_D21, Rep_2_D21, Rep_3_D21, "D21", number_contributors, deducible_nondeducible, quantity, n_D211, n_D212,n_D213, d_D211, d_D212, d_D213, race)
+       #write("D21", filename, append = TRUE)
+       #write(all_locuses[6], filename, append = TRUE)
+       
+       all_locuses[7]<-make_full_locus_table(D18_alleles_freq,Rep_1_D18, Rep_2_D18, Rep_3_D18, "D18", number_contributors, deducible_nondeducible, quantity, n_D181, n_D182,n_D183, d_D181, d_D182, d_D183, race)
+       #write("D18", filename, append = TRUE)
+       #write(all_locuses[7], filename, append = TRUE)
+       
+       all_locuses[8]<-make_full_locus_table(FGA_alleles_freq,Rep_1_FGA, Rep_2_FGA, Rep_3_FGA, "FGA", number_contributors, deducible_nondeducible, quantity, n_FGA1, n_FGA2,n_FGA3, d_FGA1, d_FGA2, d_FGA3, race)
+       #write("FGA", filename, append = TRUE)
+       #write(all_locuses[8], filename, append = TRUE)
+       
+       all_locuses[9]<-make_full_locus_table(D5_alleles_freq,Rep_1_D5, Rep_2_D5, Rep_3_D5, "D5", number_contributors, deducible_nondeducible, quantity, n_D51, n_D52,n_D53, d_D51, d_D52, d_D53, race)
+       #write("D5", filename, append = TRUE)
+       #write(all_locuses[9], filename, append = TRUE)
+       
+       all_locuses[10]<-make_full_locus_table(D13_alleles_freq,Rep_1_D13, Rep_2_D13, Rep_3_D13, "D13", number_contributors, deducible_nondeducible, quantity, n_D131, n_D132,n_D133, d_D131, d_D132, d_D133, race)
+       #write("D13", filename, append = TRUE)
+       #write(all_locuses[10], filename, append = TRUE)
+       
+       all_locuses[11]<-make_full_locus_table(vWA_alleles_freq,Rep_1_vWA, Rep_2_vWA, Rep_3_vWA, "vWA", number_contributors, deducible_nondeducible, quantity, n_vWA1, n_vWA2,n_vWA3, d_vWA1, d_vWA2, d_vWA3, race)
+       #write("vWA", filename, append = TRUE)
+       #write(all_locuses[11], filename, append = TRUE)  
+       
+       all_locuses[12]<-make_full_locus_table(TH01_alleles_freq,Rep_1_TH01, Rep_2_TH01, Rep_3_TH01, "TH01", number_contributors, deducible_nondeducible, quantity, n_TH011, n_TH012,n_TH013, d_TH011, d_TH012, d_TH013, race)
+       #write("TH01", filename, append = TRUE)
+       #write(all_locuses[12], filename, append = TRUE)
+       
+       all_locuses[13]<-make_full_locus_table(D2_alleles_freq,Rep_1_D2, Rep_2_D2, Rep_3_D2, "D2", number_contributors, deducible_nondeducible, quantity, n_D21, n_D22,n_D23, d_D21, d_D22, d_D23, race)
+       #write("D2", filename, append = TRUE)
+       #write(all_locuses[13], filename, append = TRUE)
+       
+       all_locuses[14]<-make_full_locus_table(D19_alleles_freq,Rep_1_D19, Rep_2_D19, Rep_3_D19, "D19", number_contributors, deducible_nondeducible, quantity, n_D191, n_D192,n_D193, d_D191, d_D192, d_D193, race)
+       #write("D19", filename, append = TRUE)
+       #write(all_locuses[14], filename, append = TRUE)
+       
+       all_locuses[15]<-make_full_locus_table(TPOX,Rep_1_TPOX, Rep_2_TPOX, Rep_3_TPOX, "TPOX", number_contributors, deducible_nondeducible, quantity, n_TPOX1, n_TPOX2,n_TPOX3, d_TPOX1, d_TPOX2, d_TPOX3, race)
+       #write("TPOX", filename, append = TRUE)
+       #write(all_locuses[15], filename, append = TRUE)
+       
+       print(all_locuses)
+       print(prod(as.numeric(all_locuses)))
+       results_table[,n]<-prod(as.numeric(all_locuses))
+       loci_table[n,]<-all_locuses
+       #write("Result:", filename, append = TRUE)
+       #write(results[n], filename, append = TRUE)
+     }
+     print("RESULTS")
+     print(results_table)
+     print("LOCI")
+     print(loci_table)
+     output$suspect_summary<-renderTable({results_table})
+     output$suspect_loci<-renderTable({loci_table})
+     
+     false_positive_table<-matrix(nrow=1000,ncol=4)
+     colnames(false_positive_table)<-race_labels
+     all_LRs<-rep(NA, 2)
+     results<-rep(NA, 4)
+     
+     for(n in 1:4){
+       race<-races[n]
+       all_D8<-calculate_all_LRfunction(D8_alleles_freq,Rep_1_D8, Rep_2_D8, Rep_3_D8, "D8", number_contributors, deducible_nondeducible, quantity, n_D81, n_D82,n_D83, d_D81, d_D82, d_D83, race)
+       all_D21<-calculate_all_LRfunction(D21_alleles_freq,Rep_1_D21, Rep_2_D21, Rep_3_D21, "D21", number_contributors, deducible_nondeducible, quantity, n_D211, n_D212,n_D213, d_D211, d_D212, d_D213, race)
+       #a<-calculate_LR_combos(all_D8, all_D21)
+       #a<-sample(a)
+       #print("a")
+       #print(a)
+       #output$summary <- renderPrint({
+       
+       # a
+       #})
+       all_D7<-calculate_all_LRfunction(D7_alleles_freq,Rep_1_D7, Rep_2_D7, Rep_3_D7, "D7", number_contributors, deducible_nondeducible, quantity, n_D71, n_D72,n_D73, d_D71, d_D72, d_D73, race)
+       #b<-calculate_LR_combos(a, all_D7)
+       #b<-sample(b)
+       #print("combos")
+       #print(b)
+       all_CSF<-calculate_all_LRfunction(CSF_alleles_freq,Rep_1_CSF, Rep_2_CSF, Rep_3_CSF, "CSF", number_contributors, deducible_nondeducible, quantity, n_CSF1, n_CSF2,n_CSF3, d_CSF1, d_CSF2, d_CSF3, race)
+       #c<-calculate_LR_combos(b,all_CSF)
+       #c<-sample(c)
+       #print("combos")
+       #print(c)
+       all_D3<-calculate_all_LRfunction(D3_alleles_freq,Rep_1_D3, Rep_2_D3, Rep_3_D3, "D3", number_contributors, deducible_nondeducible, quantity, n_D31, n_D32,n_D33, d_D31, d_D32, d_D33, race)
+       #d<-calculate_LR_combos(c,all_D3)
+       #d<-sample(d)
+       all_TH01<-calculate_all_LRfunction(TH01_alleles_freq,Rep_1_TH01, Rep_2_TH01, Rep_3_TH01, "TH01", number_contributors, deducible_nondeducible, quantity, n_TH011, n_TH012,n_TH013, d_TH011, d_TH012, d_TH013, race)
+       #e<-calculate_LR_combos(d, all_TH01)
+       #e<-sample(e)
+       all_D13<-calculate_all_LRfunction(D13_alleles_freq,Rep_1_D13, Rep_2_D13, Rep_3_D13, "D13", number_contributors, deducible_nondeducible, quantity, n_D131, n_D132,n_D133, d_D131, d_D132, d_D133, race)
+       #f<-calculate_LR_combos(e, all_D13)
+       #f<-sample(f)
+       all_D16<-calculate_all_LRfunction(D16_alleles_freq,Rep_1_D16, Rep_2_D16, Rep_3_D16, "D16", number_contributors, deducible_nondeducible, quantity, n_D161, n_D162,n_D163, d_D161, d_D162, d_D163, race)
+       #g<-calculate_LR_combos(f, all_D16)
+       #g<-sample(g)
+       all_D2<-calculate_all_LRfunction(D2_alleles_freq,Rep_1_D2, Rep_2_D2, Rep_3_D2, "D2", number_contributors, deducible_nondeducible, quantity, n_D21, n_D22,n_D23, d_D21, d_D22, d_D23, race)
+       #h<-calculate_LR_combos(g, all_D2)
+       #h<-sample(h)
+       all_D19<-calculate_all_LRfunction(D19_alleles_freq,Rep_1_D19, Rep_2_D19, Rep_3_D19, "D19", number_contributors, deducible_nondeducible, quantity, n_D191, n_D192,n_D193, d_D191, d_D192, d_D193, race)
+       #i<-calculate_LR_combos(h, all_D19)
+       #i<-sample(i)
+       all_vWA<-calculate_all_LRfunction(vWA_alleles_freq,Rep_1_vWA, Rep_2_vWA, Rep_3_vWA, "vWA", number_contributors, deducible_nondeducible, quantity, n_vWA1, n_vWA2,n_vWA3, d_vWA1, d_vWA2, d_vWA3, race)
+       #j<-calculate_LR_combos(i, all_vWA)
+       #j<-sample(j)
+       all_TPOX<-calculate_all_LRfunction(TPOX,Rep_1_TPOX, Rep_2_TPOX, Rep_3_TPOX, "TPOX", number_contributors, deducible_nondeducible, quantity, n_TPOX1, n_TPOX2,n_TPOX3, d_TPOX1, d_TPOX2, d_TPOX3, race)
+       #k<-calculate_LR_combos(j, all_TPOX)
+       #k<-sample(k)
+       all_D18<-calculate_all_LRfunction(D18_alleles_freq,Rep_1_D18, Rep_2_D18, Rep_3_D18, "D18", number_contributors, deducible_nondeducible, quantity, n_D181, n_D182,n_D183, d_D181, d_D182, d_D183, race)
+       #l<-calculate_LR_combos(k, all_D18)
+       #l<-sample(l)
+       #print("combos")
+       #print(l)
+       all_D5<-calculate_all_LRfunction(D5_alleles_freq,Rep_1_D5, Rep_2_D5, Rep_3_D5, "D5", number_contributors, deducible_nondeducible, quantity, n_D51, n_D52,n_D53, d_D51, d_D52, d_D53, race)
+       #m<-calculate_LR_combos(l, all_D5)
+       #m<-sample(m)
+       #print("combos")
+       #print(m)
+       all_FGA<-calculate_all_LRfunction(FGA_alleles_freq,Rep_1_FGA, Rep_2_FGA, Rep_3_FGA, "FGA", number_contributors, deducible_nondeducible, quantity, n_FGA1, n_FGA2,n_FGA3, d_FGA1, d_FGA2, d_FGA3, race)
+       false_positives<-create_LR_table(all_D8, all_D21, all_D7, all_CSF, all_D3, all_TH01, all_D13, all_D16, all_D2, all_D19, all_vWA, all_TPOX, all_D18, all_D5, all_FGA)
+       #n<-calculate_LR_combos(m, all_FGA)
+       #n<-n[(order(-n)]
+       #false_positive_table[,1]<-n
+       false_positive_table[,n]<-false_positives
+     }
+     output$false_positives<-renderTable({false_positive_table})
+     
+     
      #all_D18<-calculate_all_LRfunction(D18_alleles_freq,Rep_1_D18, Rep_2_D18, Rep_3_D18, "D18", number_contributors, deducible_nondeducible, quantity, n_D181, n_D182,n_D183, d_D181, d_D182, d_D183, "V3")
-     #all_D5<-calculate_all_LRfunction(D5_alleles_freq,Rep_1_D5, Rep_2_D5, Rep_3_D5, "D5", number_contributors, deducible_nondeducible, quantity, n_D51, n_D52,n_D53, d_D51, d_D52, d_D53, "V3")
-     #all_FGA<-calculate_all_LRfunction(FGA_alleles_freq,Rep_1_FGA, Rep_2_FGA, Rep_3_FGA, "FGA", number_contributors, deducible_nondeducible, quantity, n_FGA1, n_FGA2,n_FGA3, d_FGA1, d_FGA2, d_FGA3, "V3")
      
+     #all_TPOX<-calculate_all_LRfunction(TPOX,Rep_1_TPOX, Rep_2_TPOX, Rep_3_TPOX, "TPOX", number_contributors, deducible_nondeducible, quantity, n_TPOX1, n_TPOX2,n_TPOX3, d_TPOX1, d_TPOX2, d_TPOX3, race)
      
+      #all_FGA<-calculate_all_LRfunction(FGA_alleles_freq,Rep_1_FGA, Rep_2_FGA, Rep_3_FGA, "FGA", number_contributors, deducible_nondeducible, quantity, n_FGA1, n_FGA2,n_FGA3, d_FGA1, d_FGA2, d_FGA3, "V3")
+     #print("all LRs")
+     #print(n)
      #temp<-expand.grid(a=all_CSF, b=all_D8, c=all_D21, d=all_D7, e=all_D3, f=all_TH01, g=all_D13, h=all_D16, i=all_D2, j=all_D19, k=all_vWA, l=all_TPOX, m=all_D18, n=all_D5, o=all_FGA)
      #temp<-expand.grid(b=all_D8, c=all_D21)
      #for(n in 1:nrow(temp)){
@@ -1443,82 +1684,7 @@
      
       #z<- myFunction("D19", rep_three_D19)
       #print(z)
-     results<-rep(NA, 4)
-     races<-c("V3", "V4", "V5", "V6")
-     for(n in 1:4){
-       filename<-paste("Report", races[n], sep = "_")
-       race<-races[n]
-       all_locuses<-rep(NA, 15)
-       all_locuses[1]<-make_full_locus_table(CSF_alleles_freq,Rep_1_CSF, Rep_2_CSF, Rep_3_CSF, "CSF", number_contributors, deducible_nondeducible, quantity, n_CSF1, n_CSF2,n_CSF3, d_CSF1, d_CSF2, d_CSF3, race)
-       write("CSF", filename, append = TRUE)
-       write(all_locuses[1], filename, append = TRUE)
-       
-       all_locuses[2]<-make_full_locus_table(D3_alleles_freq,Rep_1_D3, Rep_2_D3, Rep_3_D3, "D3", number_contributors, deducible_nondeducible, quantity, n_D31, n_D32,n_D33, d_D31, d_D32, d_D33, race)
-       write("D3", filename, append = TRUE)
-       write(all_locuses[2], filename, append = TRUE)
-       
-       all_locuses[3]<-make_full_locus_table(D16_alleles_freq,Rep_1_D16, Rep_2_D16, Rep_3_D16, "D16", number_contributors, deducible_nondeducible, quantity, n_D161, n_D162,n_D163, d_D161, d_D162, d_D163, race)
-       write("D16", filename, append = TRUE)
-       write(all_locuses[3], filename, append = TRUE)
-       
-       all_locuses[4]<-make_full_locus_table(D7_alleles_freq,Rep_1_D7, Rep_2_D7, Rep_3_D7, "D7", number_contributors, deducible_nondeducible, quantity, n_D71, n_D72,n_D73, d_D71, d_D72, d_D73, race)
-       write("D7", filename, append = TRUE)
-       write(all_locuses[4], filename, append = TRUE)
-       
-       all_locuses[5]<-make_full_locus_table(D8_alleles_freq,Rep_1_D8, Rep_2_D8, Rep_3_D8, "D8", number_contributors, deducible_nondeducible, quantity, n_D81, n_D82,n_D83, d_D81, d_D82, d_D83, race)
-       write("D8", filename, append = TRUE)
-       write(all_locuses[5], filename, append = TRUE)
-       
-       all_locuses[6]<-make_full_locus_table(D21_alleles_freq,Rep_1_D21, Rep_2_D21, Rep_3_D21, "D21", number_contributors, deducible_nondeducible, quantity, n_D211, n_D212,n_D213, d_D211, d_D212, d_D213, race)
-       write("D21", filename, append = TRUE)
-       write(all_locuses[6], filename, append = TRUE)
-       
-       all_locuses[7]<-make_full_locus_table(D18_alleles_freq,Rep_1_D18, Rep_2_D18, Rep_3_D18, "D18", number_contributors, deducible_nondeducible, quantity, n_D181, n_D182,n_D183, d_D181, d_D182, d_D183, race)
-       write("D18", filename, append = TRUE)
-       write(all_locuses[7], filename, append = TRUE)
-       
-       all_locuses[8]<-make_full_locus_table(FGA_alleles_freq,Rep_1_FGA, Rep_2_FGA, Rep_3_FGA, "FGA", number_contributors, deducible_nondeducible, quantity, n_FGA1, n_FGA2,n_FGA3, d_FGA1, d_FGA2, d_FGA3, race)
-       write("FGA", filename, append = TRUE)
-       write(all_locuses[8], filename, append = TRUE)
-       
-       all_locuses[9]<-make_full_locus_table(D5_alleles_freq,Rep_1_D5, Rep_2_D5, Rep_3_D5, "D5", number_contributors, deducible_nondeducible, quantity, n_D51, n_D52,n_D53, d_D51, d_D52, d_D53, race)
-       write("D5", filename, append = TRUE)
-       write(all_locuses[9], filename, append = TRUE)
-       
-       all_locuses[10]<-make_full_locus_table(D13_alleles_freq,Rep_1_D13, Rep_2_D13, Rep_3_D13, "D13", number_contributors, deducible_nondeducible, quantity, n_D131, n_D132,n_D133, d_D131, d_D132, d_D133, race)
-       write("D13", filename, append = TRUE)
-       write(all_locuses[10], filename, append = TRUE)
-       
-       all_locuses[11]<-make_full_locus_table(vWA_alleles_freq,Rep_1_vWA, Rep_2_vWA, Rep_3_vWA, "vWA", number_contributors, deducible_nondeducible, quantity, n_vWA1, n_vWA2,n_vWA3, d_vWA1, d_vWA2, d_vWA3, race)
-       write("vWA", filename, append = TRUE)
-       write(all_locuses[11], filename, append = TRUE)  
-       
-       all_locuses[12]<-make_full_locus_table(TH01_alleles_freq,Rep_1_TH01, Rep_2_TH01, Rep_3_TH01, "TH01", number_contributors, deducible_nondeducible, quantity, n_TH011, n_TH012,n_TH013, d_TH011, d_TH012, d_TH013, race)
-       write("TH01", filename, append = TRUE)
-       write(all_locuses[12], filename, append = TRUE)
-       
-       all_locuses[13]<-make_full_locus_table(D2_alleles_freq,Rep_1_D2, Rep_2_D2, Rep_3_D2, "D2", number_contributors, deducible_nondeducible, quantity, n_D21, n_D22,n_D23, d_D21, d_D22, d_D23, race)
-       write("D2", filename, append = TRUE)
-       write(all_locuses[13], filename, append = TRUE)
-       
-       all_locuses[14]<-make_full_locus_table(D19_alleles_freq,Rep_1_D19, Rep_2_D19, Rep_3_D19, "D19", number_contributors, deducible_nondeducible, quantity, n_D191, n_D192,n_D193, d_D191, d_D192, d_D193, race)
-       write("D19", filename, append = TRUE)
-       write(all_locuses[14], filename, append = TRUE)
-       
-       all_locuses[15]<-make_full_locus_table(TPOX,Rep_1_TPOX, Rep_2_TPOX, Rep_3_TPOX, "TPOX", number_contributors, deducible_nondeducible, quantity, n_TPOX1, n_TPOX2,n_TPOX3, d_TPOX1, d_TPOX2, d_TPOX3, race)
-       write("TPOX", filename, append = TRUE)
-       write(all_locuses[15], filename, append = TRUE)
-       
-       print(all_locuses)
-       print(prod(as.numeric(all_locuses)))
-       results[n]<-prod(as.numeric(all_locuses))
-       write("Result:", filename, append = TRUE)
-       write(results[n], filename, append = TRUE)
-     }
-     print("RESULTS")
-     print(results)
-   
-      
+    
       })
    
   }
